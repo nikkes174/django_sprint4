@@ -27,7 +27,8 @@ class FilteredQuerySet(models.QuerySet):
         if annotate_comments:
             posts = (
                 posts.annotate(
-                comment_count=Count('comments'))
+                    comment_count=Count('comments')
+                )
                 .order_by('-pub_date', '-comment_count')
             )
         return posts
