@@ -1,15 +1,16 @@
-from django.db.models import Count
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
+from django.apps import apps
 
 
 class FilteredQuerySet(models.QuerySet):
-    def published_filter(
+    def prepare_posts(
             self,
             select_related=True,
             annotate_comments=True,
-            apply_filters=True
-    ):
+            apply_filters=True):
+        Post = apps.get_model('blog', 'Post')
         posts = self
         if apply_filters:
             posts = posts.filter(
@@ -17,7 +18,6 @@ class FilteredQuerySet(models.QuerySet):
                 category__is_published=True,
                 pub_date__lte=timezone.now()
             )
-
         if select_related:
             posts = posts.select_related(
                 'location',
@@ -25,10 +25,8 @@ class FilteredQuerySet(models.QuerySet):
                 'author'
             )
         if annotate_comments:
-            posts = (
-                posts.annotate(
-                    comment_count=Count('comments')
-                )
-                .order_by('-pub_date', '-comment_count')
+            posts = posts.annotate(comment_count=Count('comments')
+            ).order_by(
+                *Post._meta.ordering
             )
         return posts

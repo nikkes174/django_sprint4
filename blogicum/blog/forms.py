@@ -26,7 +26,6 @@ class CommentForm(forms.ModelForm):
 
 
 class EditingForm(UserCreationForm):
-    email = forms.EmailField()
 
     class Meta:
         model = User

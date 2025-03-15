@@ -1,7 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -23,10 +22,8 @@ class IndexListView(LoginRequiredMixin, ListView):
     paginate_by = PAGINATE_BY
 
     def get_queryset(self):
-        return Post.objects.published_filter(
-            annotate_comments=True,
-            select_related=True
-        )
+        return Post.objects.prepare_posts()
+
 
 
 class PostDetailView(LoginRequiredMixin, DetailView):
@@ -39,18 +36,12 @@ class PostDetailView(LoginRequiredMixin, DetailView):
         post = super().get_object()
         if post.author == self.request.user:
             return post
-        filtered_post = (
-            Post.objects.published_filter(
+        return super().get_object(
+            Post.objects.prepare_posts(
                 select_related=False,
-                annotate_comments=False,
-                apply_filters=True
+                annotate_comments=False
             )
-            .filter(pk=post.pk)
-            .first()
         )
-        if not filtered_post:
-            raise Http404
-        return filtered_post
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(
@@ -120,7 +111,7 @@ class CategoryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         category = self.get_category()
-        return category.posts.published_filter(
+        return category.posts.prepare_posts(
             select_related=True,
             annotate_comments=True,
         )
@@ -157,7 +148,7 @@ class CommentBaseViev(LoginRequiredMixin, UserPassesTestMixin, View):
         return self.request.user == self.get_object().author
 
     def get_success_url(self):
-        return reverse('blog:post_detail', args=[self.kwargs['comment_id']])
+        return reverse('blog:post_detail', args=[self.get_object().post.pk])
 
 
 class CommentDeleteView(CommentBaseViev, DeleteView):
@@ -200,7 +191,7 @@ class ProfileView(DetailView):
             **kwargs,
             profile=user,
             page_obj=Paginator(
-                Post.objects.published_filter(
+                Post.objects.prepare_posts(
                     apply_filters=(self.request.user != user)
                 ).filter(author=user),
                 PAGINATE_BY
