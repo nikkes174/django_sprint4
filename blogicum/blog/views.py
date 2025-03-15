@@ -25,7 +25,6 @@ class IndexListView(LoginRequiredMixin, ListView):
         return Post.objects.prepare_posts()
 
 
-
 class PostDetailView(LoginRequiredMixin, DetailView):
     model = Post
     template_name = 'blog/detail.html'

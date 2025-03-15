@@ -25,8 +25,8 @@ class FilteredQuerySet(models.QuerySet):
                 'author'
             )
         if annotate_comments:
-            posts = posts.annotate(comment_count=Count('comments')
-            ).order_by(
-                *Post._meta.ordering
+            posts = (
+                posts.annotate(comment_count=Count('comments'))
+                .order_by(*Post._meta.ordering)
             )
         return posts
